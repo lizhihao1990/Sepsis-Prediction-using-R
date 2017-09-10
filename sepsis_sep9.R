@@ -1,4 +1,7 @@
+#set working directory
 setwd("C:/Users/Yash/Desktop/Sepsis Project/datasets/july 26")
+
+#load the data sets
 test_20 <- read.csv("test_20_scaled.csv",header = T)
 test_30 <- read.csv("test_30_scaled.csv",header = T)
 train <- read.csv("train_scaled.csv",header = T)
@@ -76,7 +79,7 @@ data_test <- train[c("GCS", "Respiration", "SpO2", "Pulse", "Anion_Gap", "Temp_S
                 "Neutrophils_Percent", "Calcium", "Hemoglobin", "ALT_GPT", "WBCC","sepsis_identifier")]
 #data <- NULL
 data <- as.data.frame(data_test)
-data <- train
+#data <- train
 summary(data)
 #data$si <- "0"
 #data$si <- as.factor(data$sepsis_identifier=="1")
@@ -162,27 +165,13 @@ cat(paste0('Best threshold based on F1.5 score: ', as.character(mean(all_optimal
 cat(paste0('Best threshold based on youden index: ', as.character(mean(all_optimal_threshold_youden)), '\n'))
 cat(paste0('\n'))
 
-#top - 5
-#based on 
-#F2 : 
-#F1 :
-#F1.5 :
-#youden-index: 
-
-
-#top - 10
-#based on 
-#F2 : 
-#F1 :
-#F1.5 :
-#youden-index: 
 
 #top -15
 #based on 
-#F2 : 
-#F1 :
-#F1.5 :
-#youden-index: 
+#F2 : 0.292433082930833
+#F1 : 0.443748247761332
+#F1.5 : 0.363272187595381
+#youden-index: 0.366280615098217 
 
 #all
 #based on 
@@ -191,3 +180,34 @@ cat(paste0('\n'))
 #F1.5 : 0.346455701243973
 #youden-index: 0.352985536620346
 
+#Make the model with BMA:
+w <- train[c("GCS", "Respiration", "SpO2", "Pulse", "Anion_Gap", "Temp_Source", "Chloride","Alkaline_Phosphatase", "Platelet_Count", "Glucose",
+             "Neutrophils_Percent", "Calcium", "Hemoglobin", "ALT_GPT", "WBCC","sepsis_identifier")]
+w<- as.data.frame(w)
+w$sepsis_identifier<- as.numeric(w$sepsis_identifier==1)
+summary(w)
+bma.model.15 <-bms(w$sepsis_identifier~.,data = w)
+test_n <-test_30
+#test_n$sepsis_identifier <- NULL
+test_n <- test_30[c("GCS", "Respiration", "SpO2", "Pulse", "Anion_Gap", "Temp_Source", "Chloride","Alkaline_Phosphatase", "Platelet_Count", "Glucose",
+                  "Neutrophils_Percent", "Calcium", "Hemoglobin", "ALT_GPT", "WBCC")]
+bma_pred <- predict( bma.model.15[1], newdata = test_n,type = "response")
+
+coef(bma.model.15[1:5])
+image(bma.model.15[1])
+
+#Optimizing F2 score
+pred <- ifelse(bma_pred>0.304294165512741,1,0)
+caret::confusionMatrix(pred, test_30$sepsis_identifier)
+
+#Optimizing F1 score
+pred <- ifelse(bma_pred>0.432113985939036,1,0)
+caret::confusionMatrix(pred, test_30$sepsis_identifier)
+
+#Optimizing F1.5 score
+pred <- ifelse(bma_pred>0.346455701243973,1,0)
+caret::confusionMatrix(pred, test_30$sepsis_identifier)
+
+#Optimizing Youden Index
+pred <- ifelse(bma_pred>0.352985536620346,1,0)
+caret::confusionMatrix(pred, test_30$sepsis_identifier)
